@@ -8,12 +8,6 @@ import {
   IncomingWebhookRequestBody,
   SnsMsg,
 } from './app.interface';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
-
-dayjs.extend(utc);
-dayjs.extend(timezone);
 
 export const handler: Handler = async (
   event: any,
