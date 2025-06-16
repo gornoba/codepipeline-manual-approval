@@ -71,3 +71,13 @@ export interface SnsMsg {
     customData: string | null;
   };
 }
+
+export interface ApprovalValue {
+  pipelineName: string;
+  approve: boolean;
+  token: string;
+  stageName: string;
+  actionName: string;
+  auth: string;
+  approvalReviewLink: string;
+}

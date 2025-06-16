@@ -3,7 +3,11 @@ import { NestFactory } from '@nestjs/core';
 import { Callback, Context, Handler } from 'aws-lambda';
 import { AppModule } from './app.module';
 import { AppService } from './app.service';
-import { IncomingWebhookRequestBody, SnsMsg } from './app.interface';
+import {
+  ApprovalValue,
+  IncomingWebhookRequestBody,
+  SnsMsg,
+} from './app.interface';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
@@ -32,45 +36,16 @@ export const handler: Handler = async (
     const encodedPayload = body.replace(/^payload=/, '');
     const decoded = decodeURIComponent(encodedPayload);
     const parsed = JSON.parse(decoded) as IncomingWebhookRequestBody;
-    const result = parsed.actions[0].name;
 
-    const value = JSON.parse(parsed.actions[0].value);
-
+    const requestResult = parsed.actions[0].name;
+    const value = JSON.parse(parsed.actions[0].value) as ApprovalValue;
     const pushResult = await appService.executeApproval(value);
-
-    let payload = null;
-    if (pushResult) {
-      payload = {
-        attachments: [
-          {
-            color: result === 'approve' ? '#00FF00' : '#FF0000',
-            text:
-              `⏰ 시간: ${dayjs
-                .unix(Number(parsed.action_ts))
-                .tz('Asia/Seoul')
-                .format('YYYY-MM-DD HH:mm:ss')}\n\n` +
-              `🔄 Pipeline Name: ${value.pipelineName} (<${value.approvalReviewLink}|링크>)\n\n` +
-              `👤 승인자: ${parsed.user.name}\n\n` +
-              `${result === 'approve' ? '✅' : '❌'} 승인 여부: ${parsed.actions[0].name}`,
-          },
-        ],
-      };
-    } else {
-      payload = {
-        attachments: [
-          {
-            color: '#FF0000',
-            text:
-              '❌ 승인 요청이 거절되었습니다.\n\n' +
-              `⏰ 시간: ${dayjs
-                .unix(Number(parsed.action_ts))
-                .tz('Asia/Seoul')
-                .format('YYYY-MM-DD HH:mm:ss')}\n\n` +
-              `🔄 Pipeline Name: ${value.pipelineName} (<${value.approvalReviewLink}|링크>)`,
-          },
-        ],
-      };
-    }
+    const payload = appService.generateApprovalPayload(
+      pushResult,
+      requestResult,
+      parsed,
+      value,
+    );
 
     return { statusCode: HttpStatus.OK, body: JSON.stringify(payload) };
   }

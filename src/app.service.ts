@@ -1,7 +1,11 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
-import { SnsMsg } from './app.interface';
+import {
+  ApprovalValue,
+  IncomingWebhookRequestBody,
+  SnsMsg,
+} from './app.interface';
 import AWS from 'aws-sdk';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -77,14 +81,7 @@ export class AppService {
     return res.data;
   }
 
-  async executeApproval(value: {
-    pipelineName: string;
-    approve: boolean;
-    token: string;
-    stageName: string;
-    actionName: string;
-    auth: string;
-  }) {
+  async executeApproval(value: ApprovalValue) {
     const { pipelineName, approve, token, stageName, actionName, auth } = value;
 
     if (auth !== process.env.SLACK_AUTH) {
@@ -124,5 +121,48 @@ export class AppService {
     }
 
     return true;
+  }
+
+  generateApprovalPayload(
+    pushResult: boolean,
+    requestResult: string,
+    parsed: IncomingWebhookRequestBody,
+    value: ApprovalValue,
+  ) {
+    let payload = null;
+    if (pushResult) {
+      payload = {
+        attachments: [
+          {
+            color: requestResult === 'approve' ? '#00FF00' : '#FF0000',
+            text:
+              `⏰ 시간: ${dayjs
+                .unix(Number(parsed.action_ts))
+                .tz('Asia/Seoul')
+                .format('YYYY-MM-DD HH:mm:ss')}\n\n` +
+              `🔄 Pipeline Name: ${value.pipelineName} (<${value.approvalReviewLink}|링크>)\n\n` +
+              `👤 승인자: ${parsed.user.name}\n\n` +
+              `${requestResult === 'approve' ? '✅' : '❌'} 승인 여부: ${parsed.actions[0].name}`,
+          },
+        ],
+      };
+    } else {
+      payload = {
+        attachments: [
+          {
+            color: '#FF0000',
+            text:
+              '❌ 승인 요청이 거절되었습니다.\n\n' +
+              `⏰ 시간: ${dayjs
+                .unix(Number(parsed.action_ts))
+                .tz('Asia/Seoul')
+                .format('YYYY-MM-DD HH:mm:ss')}\n\n` +
+              `🔄 Pipeline Name: ${value.pipelineName} (<${value.approvalReviewLink}|링크>)`,
+          },
+        ],
+      };
+    }
+
+    return payload;
   }
 }
