@@ -74,8 +74,12 @@ export class AppService {
       ],
     };
 
+    const slackWebhookUrl = /dev/.test(pipelineName)
+      ? process.env.SLACK_WEBHOOK_URL_DEV
+      : process.env.SLACK_WEBHOOK_URL;
+
     const res = await firstValueFrom(
-      this.httpService.post(process.env.SLACK_WEBHOOK_URL, payload),
+      this.httpService.post(slackWebhookUrl, payload),
     );
 
     return res.data;
