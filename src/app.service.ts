@@ -31,7 +31,7 @@ export class AppService {
     const payload = {
       text:
         `🚨 파이프라인 배포 승인 요청 🚨\n\n` +
-        `📌 Pipeline Name: *_${pipelineName}_*\n` +
+        `📌 Pipeline Name: *_${pipelineName}_* (<${approvalReviewLink}|링크>)\n` +
         `✅ 승인하시려면 아래 버튼을 클릭해주세요.\n\n` +
         `🔄 만료 시간: ${dayjs(expires).tz('Asia/Seoul').format('YYYY-MM-DD HH:mm:ss')}`,
       attachments: [
